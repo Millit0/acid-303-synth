@@ -1,92 +1,58 @@
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-    body { font-family: 'Share Tech Mono', monospace; background-color: #121212; color: #00ff66; }
-    .led-glow { box-shadow: 0 0 10px #00ff66; }
-    .btn-step { background: #222; border: 1px solid #444; transition: all 0.1s; }
-    .knob { transform-origin: center; cursor: pointer; }
-</style>
-<!-- Header / Title -->
-<header class="text-center my-2">
-    <h1 class="text-3xl md:text-4xl font-black tracking-widest text-emerald-400 drop-shadow-[0_0_8px_rgba(0,255,102,0.6)]">TB-303 ACID BASS</h1>
-    <p class="text-xs text-zinc-400 tracking-wider">WEB AUDIO ACID SYNTHESIZER & SEQUENCER</p>
-</header>
-
-<!-- Main Synth Box -->
-<main class="w-full max-w-4xl bg-zinc-900 border-2 border-zinc-700 rounded-xl p-6 shadow-2xl">
-    
-    <!-- Top Controls Panel -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6 p-4 bg-black/60 rounded-lg border border-zinc-800">
-        <!-- Tempo -->
-        <div class="flex flex-col items-center">
-            <label class="text-xs text-zinc-400 mb-1">TEMPO (BPM)</label>
-            <div class="flex items-center gap-2">
-                <button onclick="changeTempo(-5)" class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 rounded text-sm">-</button>
-                <span id="tempo-display" class="text-xl font-bold w-12 text-center text-emerald-400">126</span>
-                <button onclick="changeTempo(5)" class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 rounded text-sm">+</button>
+<button id="btn-sqr" class="wave-btn" onclick="setWaveform('square')">SQR</button>
             </div>
         </div>
 
-        <!-- Waveform -->
-        <div class="flex flex-col items-center justify-center">
-            <label class="text-xs text-zinc-400 mb-1">WAVEFORM</label>
-            <div class="flex bg-zinc-800 p-1 rounded">
-                <button onclick="setWaveform('sawtooth')" id="btn-saw" class="px-3 py-1 text-xs rounded bg-emerald-500 text-black font-bold">SAW</button>
-                <button onclick="setWaveform('square')" id="btn-sqr" class="px-3 py-1 text-xs rounded text-zinc-300">SQR</button>
-            </div>
+        <!-- شدت ضربه -->
+        <div class="control-item">
+            <span class="control-label">شدت کوبش (ACCENT)</span>
+            <input type="range" id="accent-boost" min="1" max="2.5" step="0.1" value="1.5">
         </div>
 
-        <!-- Tuning / Accent -->
-        <div class="flex flex-col items-center justify-center">
-            <label class="text-xs text-zinc-400 mb-1">ACCENT BOOST</label>
-            <input type="range" id="accent-boost" min="1" max="2.5" step="0.1" value="1.5" class="w-24 accent-emerald-500 cursor-pointer">
-        </div>
-
-        <!-- Play / Stop -->
-        <div class="flex items-center justify-center gap-3">
-            <button id="play-btn" onclick="togglePlay()" class="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-lg shadow-lg led-glow tracking-wider transition-transform active:scale-95">
-                PLAY
-            </button>
+        <!-- دکمه پلی -->
+        <div class="control-item">
+            <button id="play-btn" class="play-btn" onclick="togglePlay()">پخش (PLAY)</button>
         </div>
     </div>
 
-    <!-- Knob Controls (Filter / Env) -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 p-4 bg-black/40 rounded-lg border border-zinc-800 text-center">
-        <div>
-            <label class="text-xs text-zinc-400 block mb-1">CUTOFF</label>
-            <input type="range" id="cutoff" min="200" max="8000" value="1200" step="50" class="w-full accent-emerald-500 cursor-pointer">
+    <!-- ردیف دوم: پیچ‌های فیلتر صدا -->
+    <div class="panel-row">
+        <div class="control-item">
+            <span class="control-label">فرکانس فیلتر (CUTOFF)</span>
+            <input type="range" id="cutoff" min="200" max="6000" value="1200" step="50">
         </div>
-        <div>
-            <label class="text-xs text-zinc-400 block mb-1">RESONANCE</label>
-            <input type="range" id="resonance" min="1" max="25" value="12" step="0.5" class="w-full accent-emerald-500 cursor-pointer">
+        <div class="control-item">
+            <span class="control-label">تیزی اسیدی (RESONANCE)</span>
+            <input type="range" id="resonance" min="1" max="25" value="14" step="0.5">
         </div>
-        <div>
-            <label class="text-xs text-zinc-400 block mb-1">ENV MOD</label>
-            <input type="range" id="env-mod" min="0" max="5000" value="2000" step="100" class="w-full accent-emerald-500 cursor-pointer">
+        <div class="control-item">
+            <span class="control-label">عمق فیلتر (ENV MOD)</span>
+            <input type="range" id="env-mod" min="100" max="5000" value="2200" step="100">
         </div>
-        <div>
-            <label class="text-xs text-zinc-400 block mb-1">DECAY</label>
-            <input type="range" id="decay" min="0.1" max="1.0" value="0.3" step="0.05" class="w-full accent-emerald-500 cursor-pointer">
-        </div>
-    </div>
-
-    <!-- Step Sequencer 16 Steps -->
-    <div class="mb-4">
-        <div class="text-xs text-zinc-400 mb-2 flex justify-between items-center">
-<span>PATTERN SEQUENCER (16 STEPS)</span>
-            <span class="text-emerald-500 text-[10px]">Click step to toggle on/off</span>
-        </div>
-        <div class="grid grid-cols-8 sm:grid-cols-16 gap-1.5" id="steps-container">
-            <!-- Generated by JS -->
+        <div class="control-item">
+            <span class="control-label">کشش صدا (DECAY)</span>
+            <input type="range" id="decay" min="0.1" max="0.9" value="0.3" step="0.05">
         </div>
     </div>
 
-    <!-- Note & Attributes Selector for Selected Step -->
-    <div class="p-3 bg-black/50 rounded-lg border border-zinc-800 flex flex-wrap items-center justify-between gap-3">
-        <div class="text-xs text-zinc-300">
-            EDITING STEP: <span id="selected-step-label" class="text-emerald-400 font-bold">1</span>
+    <!-- بخش ۱۶ خانه ریتم -->
+    <div>
+        <div class="seq-header">
+            <span>پنل ۱۶ خانه‌ای ریتم (PATTERN SEQUENCER)</span>
+            <span class="seq-hint">برای روشن/خاموش کردن و ویرایش هر خانه روی آن کلیک کنید</span>
         </div>
-        <div class="flex items-center gap-2">
-            <label class="text-xs text-zinc-400">NOTE:</label>
-            <select id="step-note" onchange="updateSelectedStepNote(this.value)" class="bg-zinc-800 border border-zinc-700 text-emerald-400 rounded px-2 py-1 text-xs">
+        <div class="steps-grid" id="steps-container">
+            <!-- خانه‌ها با جاوااسکریپت ساخته می‌شوند -->
+        </div>
+    </div>
+
+    <!-- بخش تنظیم نت هر خانه -->
+    <div class="edit-bar">
+        <div>
+            ویرایش خانه شماره: <strong id="selected-step-label" style="color: #00ff66; font-size: 16px;">1</strong>
+        </div>
+        <div>
+            <label>انتخاب نت (NOTE): </label>
+            <select id="step-note" onchange="updateSelectedStepNote(this.value)">
                 <option value="C2">C2</option>
                 <option value="C#2">C#2</option>
                 <option value="D2">D2</option>
@@ -102,29 +68,29 @@
                 <option value="C3">C3</option>
             </select>
         </div>
-        <div class="flex items-center gap-3">
-            <label class="flex items-center gap-1 text-xs cursor-pointer text-zinc-300">
-                <input type="checkbox" id="step-slide" onchange="toggleSelectedStepAttr('slide')" class="accent-emerald-500"> SLIDE
+        <div class="checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" id="step-slide" onchange="toggleSelectedStepAttr('slide')">
+                سُر خوردن نت (SLIDE)
             </label>
-            <label class="flex items-center gap-1 text-xs cursor-pointer text-zinc-300">
-                <input type="checkbox" id="step-accent" onchange="toggleSelectedStepAttr('accent')" class="accent-emerald-500"> ACCENT
+            <label class="checkbox-label">
+                <input type="checkbox" id="step-accent" onchange="toggleSelectedStepAttr('accent')">
+                ضربه قوی (ACCENT)
             </label>
         </div>
     </div>
 
 </main>
 
-<!-- Footer with Reymit Donation Link -->
-<footer class="w-full max-w-4xl mt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-500 border-t border-zinc-800 pt-4 gap-3">
-    <div>Roland TB-303 Web Synthesizer &bull; Built with Web Audio API</div>
-    <div>
-        <a href="https://reymit.ir/milito" target="_blank" rel="noopener noreferrer" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-lg shadow-md transition-all flex items-center gap-2">
-            ☕ حمایت از من (Donation)
-        </a>
-    </div>
+<!-- فوتر و لینک دونیت ری‌میت -->
+<footer>
+    <div>ساخته شده با موتور صوتی Web Audio API</div>
+    <a href="https://reymit.ir/milito" target="_blank" rel="noopener noreferrer" class="donate-btn">
+        ☕ حمایت مالی از من (Donation)
+    </a>
 </footer>
 
-<!-- Audio Synth Logic -->
+<!-- کدهای تولید صدا -->
 <script>
     let audioCtx = null;
     let isPlaying = false;
@@ -134,11 +100,11 @@
     let waveformType = 'sawtooth';
     let currentSelectedStep = 0;
 
-    // 16 Steps Pattern Data
+    const defaultNotes = ['E2', 'E2', 'G2', 'E2', 'A2', 'G2', 'E2', 'D2', 'E2', 'E2', 'B2', 'A2', 'G2', 'E2', 'D2', 'C2'];
+
     let pattern = Array(16).fill(0).map((_, i) => ({
-        active: i % 2 === 0,
-        note: 'E2',
-        slide: false,
+        active: i % 2 === 0 || i === 3 || i === 11,
+        note: defaultNotes[i],slide: i === 3 || i === 11,
         accent: i % 4 === 0
     }));
 
@@ -148,18 +114,16 @@
         'G#2': 103.83, 'A2': 110.00, 'A#2': 116.54, 'B2': 123.47, 'C3': 130.81
     };
 
-    // Build UI Steps
     const stepsContainer = document.getElementById('steps-container');
     pattern.forEach((step, idx) => {
         const btn = document.createElement('button');
-        btn.className = `btn-step h-16 rounded flex flex-col items-center justify-between p-1 text-[10px] ${step.active ? 'active' : ''}`;
-        btn.id =https://fonts.googl
+        btn.className = 'step-btn ' + (step.active ? 'active' : '');
+        btn.id = 'step-btn-' + idx;
         btn.onclick = () => selectStep(idx);
         btn.innerHTML = `
-            <span class="text-zinc-500">${idx + 1}</span>
-            <span id="step-txt- {step.active ? step.note : '-'}</span>
-            <span class="w-2 h-2 rounded-full ${step.
-accent ? 'bg-amber-400' : 'bg-transparent'}"></span>
+            <span class="step-num">${idx + 1}</span>
+            <span id="step-txt-￼{step.active ? step.note : '-'}</span>
+            <span id="step-dot-${idx}" class="accent-dot ${step.accent ? 'on' : ''}"></span>
         `;
         stepsContainer.appendChild(btn);
     });
@@ -171,20 +135,27 @@ accent ? 'bg-amber-400' : 'bg-transparent'}"></span>
         document.getElementById('step-slide').checked = pattern[idx].slide;
         document.getElementById('step-accent').checked = pattern[idx].accent;
         
-        // Toggle active state on click
         pattern[idx].active = !pattern[idx].active;
         updateStepUI(idx);
     }
 
     function updateStepUI(idx) {
-        const btn = document.getElementById(`step-btn-${idx}`);
-        const txt = document.getElementById(`step-txt-${idx}`);
+        const btn = document.getElementById('step-btn-' + idx);
+        const txt = document.getElementById('step-txt-' + idx);
+        const dot = document.getElementById('step-dot-' + idx);
+        
         if (pattern[idx].active) {
             btn.classList.add('active');
             txt.innerText = pattern[idx].note;
         } else {
             btn.classList.remove('active');
             txt.innerText = '-';
+        }
+
+        if (pattern[idx].accent) {
+            dot.classList.add('on');
+        } else {
+            dot.classList.remove('on');
         }
     }
 
@@ -194,12 +165,8 @@ accent ? 'bg-amber-400' : 'bg-transparent'}"></span>
     }
 
     function toggleSelectedStepAttr(attr) {
-        pattern[currentSelectedStep][attr] = document.getElementById(`step-${attr}`).checked;
-        if (attr === 'accent') {
-            const btn = document.getElementById(`step-btn-${currentSelectedStep}`);
-            btn.querySelector('.w-2').className =            <div class="flex bg-zinc-800 p-1 rounded">
-                <button onclick="setWaveform
-        }
+        pattern[currentSelectedStep][attr] = document.getElementById('step-' + attr).checked;
+        updateStepUI(currentSelectedStep);
     }
 
     function changeTempo(amount) {
@@ -213,11 +180,8 @@ accent ? 'bg-amber-400' : 'bg-transparent'}"></span>
 
     function setWaveform(type) {
         waveformType = type;
-        document.getElementById('btn-saw').className =Title -->
-<header class="text-center my-2">
-    <h1 class="text-3xl md:text-4xl font-black tracking-widest tex
-        document.getElementById('btn-sqr').className =ly=Share+Tech+Mono&display=swap');
-    body { font-family: 'Share Tech Mono', monospace; background-color: #
+        document.getElementById('btn-saw').className = 'wave-btn ' + (type === 'sawtooth' ? 'active' : '');
+        document.getElementById('btn-sqr').className = 'wave-btn ' + (type === 'square' ? 'active' : '');
     }
 
     function togglePlay() {
@@ -231,22 +195,18 @@ accent ? 'bg-amber-400' : 'bg-transparent'}"></span>
         isPlaying = !isPlaying;
         const playBtn = document.getElementById('play-btn');
         if (isPlaying) {
-            playBtn.innerText = 'STOP';
-            playBtn.classList.remove('bg-emerald-500', 'hover:bg-emerald-400');
-            playBtn.classList.add('bg-rose-500', 'hover:bg-rose-400', 'text-white');
+            playBtn.innerText = 'توقف (STOP)';
+            playBtn.classList.add('playing');
             startSequencer();
         } else {
             stopSequencer();
-            playBtn.innerText = 'PLAY';
-            playBtn.classList.remove('bg-rose-500', 'hover:bg-rose-400', 'text-white');
-            playBtn.classList.add('bg-emerald-500', 'hover:bg-emerald-400');
+            playBtn.innerText = 'پخش (PLAY)';
+            playBtn.classList.remove('playing');
         }
     }
 
     function startSequencer() {
-        const interval = (60 / tempo / 4) * 1000; // 16th notes
-        let nextStepTime = audioCtx.currentTime;
-
+        const interval = (60 / tempo / 4) * 1000;
         timerId = setInterval(() => {
             runStep();
             currentStep = (currentStep + 1) % 16;
@@ -256,43 +216,44 @@ accent ? 'bg-amber-400' : 'bg-transparent'}"></span>
     function stopSequencer() {
         clearInterval(timerId);
         currentStep = 0;
-        // Clear LED highlights
-        for(let i=0; i<16; i++) {
-            document.getElementById(`step-btn-${i}`).style.borderColor = '#444';
+        for (let i = 0; i < 16; i++) {
+            document.getElementById('step-btn-' + i).classList.remove('current-play');
         }
     }
 
     function runStep() {
-        // Visual playhead indicator
-        for(let i=0; i<16; i++) {
-            document.getElementById(`step-btn-${i}`).style.borderColor = (i === currentStep) ? '#ffffff' : '#444';
+        for (let i = 0; i < 16; i++) {
+            const btn = document.getElementById('step-btn-' + i);
+            if (i === currentStep) {
+                btn.classList.add('current-play');
+            } else {
+                btn.classList.remove('current-play');
+            }
         }
 
         const stepData = pattern[currentStep];
-        if (!stepData.active) return;
-
-        play303Note(stepData);
+        if (stepData.active) {
+            play303Note(stepData);
+        }
     }
 
     let lastFreq = 82.41;
 
     function play303Note(step) {
         const now = audioCtx.currentTime;
-const freq = noteFrequencies[step.note] || 82.41;
+        const freq = noteFrequencies[step.note] || 82.41;
 
-        // Oscillator
         const osc = audioCtx.createOscillator();
         osc.type = waveformType;
         osc.frequency.setValueAtTime(lastFreq, now);
         
         if (step.slide) {
-            osc.frequency.exponentialRampToValueAtTime(freq, now + 0.1);
+            osc.frequency.exponentialRampToValueAtTime(freq, now + 0.08);
         } else {
             osc.frequency.setValueAtTime(freq, now);
         }
         lastFreq = freq;
 
-        // Filter (Lowpass with 303 Resonance characteristics)
         const filter = audioCtx.createBiquadFilter();
         filter.type = 'lowpass';
         
@@ -305,25 +266,20 @@ const freq = noteFrequencies[step.note] || 82.41;
         filter.Q.setValueAtTime(resVal, now);
         filter.frequency.setValueAtTime(cutoffVal, now);
 
-        // Envelope filter sweep
-        filter.frequency.exponentialRampToValueAtTime(
-            Math.min(15000, Math.max(100, cutoffVal + (envModVal * accentMultiplier))), 
-            now + 0.02
-        );
+        const peakFilter = Math.min(14000, Math.max(100, cutoffVal + (envModVal * accentMultiplier)));
+        filter.frequency.exponentialRampToValueAtTime(peakFilter, now + 0.015);
         filter.frequency.exponentialRampToValueAtTime(cutoffVal, now + decayVal);
 
-        // VCA Amp Envelope
         const gainNode = audioCtx.createGain();
-        const peakGain = step.accent ? 0.7 : 0.4;
+        const peakGain = step.accent ? 0.65 : 0.35;
         gainNode.gain.setValueAtTime(peakGain, now);
         gainNode.gain.exponentialRampToValueAtTime(0.0001, now + decayVal);
 
-        // Connect graph
         osc.connect(filter);
         filter.connect(gainNode);
         gainNode.connect(audioCtx.destination);
 
         osc.start(now);
-        osc.stop(now + decayVal + 0.1);
+        osc.stop(now + decayVal + 0.05);
     }
 </script>
