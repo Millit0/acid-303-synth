@@ -1,3 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+    body { font-family: 'Share Tech Mono', monospace; background-color: #121212; color: #00ff66; }
+    .led-glow { box-shadow: 0 0 10px #00ff66; }
+    .btn-step { background: #222; border: 1px solid #444; transition: all 0.1s; }
+    .knob { transform-origin: center; cursor: pointer; }
+</style>
 <!-- Header / Title -->
 <header class="text-center my-2">
     <h1 class="text-3xl md:text-4xl font-black tracking-widest text-emerald-400 drop-shadow-[0_0_8px_rgba(0,255,102,0.6)]">TB-303 ACID BASS</h1>
@@ -65,7 +71,7 @@
     <!-- Step Sequencer 16 Steps -->
     <div class="mb-4">
         <div class="text-xs text-zinc-400 mb-2 flex justify-between items-center">
-            <span>PATTERN SEQUENCER (16 STEPS)</span>
+<span>PATTERN SEQUENCER (16 STEPS)</span>
             <span class="text-emerald-500 text-[10px]">Click step to toggle on/off</span>
         </div>
         <div class="grid grid-cols-8 sm:grid-cols-16 gap-1.5" id="steps-container">
@@ -74,7 +80,7 @@
     </div>
 
     <!-- Note & Attributes Selector for Selected Step -->
-<div class="p-3 bg-black/50 rounded-lg border border-zinc-800 flex flex-wrap items-center justify-between gap-3">
+    <div class="p-3 bg-black/50 rounded-lg border border-zinc-800 flex flex-wrap items-center justify-between gap-3">
         <div class="text-xs text-zinc-300">
             EDITING STEP: <span id="selected-step-label" class="text-emerald-400 font-bold">1</span>
         </div>
@@ -147,13 +153,13 @@
     pattern.forEach((step, idx) => {
         const btn = document.createElement('button');
         btn.className = `btn-step h-16 rounded flex flex-col items-center justify-between p-1 text-[10px] ${step.active ? 'active' : ''}`;
-        btn.id =le -->
-<header clas
+        btn.id =https://fonts.googl
         btn.onclick = () => selectStep(idx);
         btn.innerHTML = `
             <span class="text-zinc-500">${idx + 1}</span>
             <span id="step-txt- {step.active ? step.note : '-'}</span>
-            <span class="w-2 h-2 rounded-full ${step.accent ? 'bg-amber-400' : 'bg-transparent'}"></span>
+            <span class="w-2 h-2 rounded-full ${step.
+accent ? 'bg-amber-400' : 'bg-transparent'}"></span>
         `;
         stepsContainer.appendChild(btn);
     });
@@ -163,7 +169,7 @@
         document.getElementById('selected-step-label').innerText = idx + 1;
         document.getElementById('step-note').value = pattern[idx].note;
         document.getElementById('step-slide').checked = pattern[idx].slide;
-document.getElementById('step-accent').checked = pattern[idx].accent;
+        document.getElementById('step-accent').checked = pattern[idx].accent;
         
         // Toggle active state on click
         pattern[idx].active = !pattern[idx].active;
@@ -191,9 +197,8 @@ document.getElementById('step-accent').checked = pattern[idx].accent;
         pattern[currentSelectedStep][attr] = document.getElementById(`step-${attr}`).checked;
         if (attr === 'accent') {
             const btn = document.getElementById(`step-btn-${currentSelectedStep}`);
-            btn.querySelector('.w-2').className =- Tuning / Accent -->
-        <div class="flex flex-col items-center justify-center">
-            <
+            btn.querySelector('.w-2').className =            <div class="flex bg-zinc-800 p-1 rounded">
+                <button onclick="setWaveform
         }
     }
 
@@ -208,12 +213,11 @@ document.getElementById('step-accent').checked = pattern[idx].accent;
 
     function setWaveform(type) {
         waveformType = type;
-        document.getElementById('btn-saw').className = rounded-xl p-6 shadow-2xl">
-    
-    <!-- Top Controls Panel -->
-    <div class="grid grid-cols-2 md:grid-col
-        document.getElementById('btn-sqr').className =">
-    <h1 class="text-3xl md:text-4xl font-black tracking-widest text-emerald-400 drop-shadow-[0_0_8px_rgba
+        document.getElementById('btn-saw').className =Title -->
+<header class="text-center my-2">
+    <h1 class="text-3xl md:text-4xl font-black tracking-widest tex
+        document.getElementById('btn-sqr').className =ly=Share+Tech+Mono&display=swap');
+    body { font-family: 'Share Tech Mono', monospace; background-color: #
     }
 
     function togglePlay() {
@@ -274,7 +278,7 @@ document.getElementById('step-accent').checked = pattern[idx].accent;
 
     function play303Note(step) {
         const now = audioCtx.currentTime;
-        const freq = noteFrequencies[step.note] || 82.41;
+const freq = noteFrequencies[step.note] || 82.41;
 
         // Oscillator
         const osc = audioCtx.createOscillator();
@@ -286,7 +290,7 @@ document.getElementById('step-accent').checked = pattern[idx].accent;
         } else {
             osc.frequency.setValueAtTime(freq, now);
         }
-lastFreq = freq;
+        lastFreq = freq;
 
         // Filter (Lowpass with 303 Resonance characteristics)
         const filter = audioCtx.createBiquadFilter();
