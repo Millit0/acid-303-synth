@@ -1,285 +1,683 @@
-<button id="btn-sqr" class="wave-btn" onclick="setWaveform('square')">SQR</button>
-            </div>
-        </div>
-
-        <!-- شدت ضربه -->
-        <div class="control-item">
-            <span class="control-label">شدت کوبش (ACCENT)</span>
-            <input type="range" id="accent-boost" min="1" max="2.5" step="0.1" value="1.5">
-        </div>
-
-        <!-- دکمه پلی -->
-        <div class="control-item">
-            <button id="play-btn" class="play-btn" onclick="togglePlay()">پخش (PLAY)</button>
-        </div>
-    </div>
-
-    <!-- ردیف دوم: پیچ‌های فیلتر صدا -->
-    <div class="panel-row">
-        <div class="control-item">
-            <span class="control-label">فرکانس فیلتر (CUTOFF)</span>
-            <input type="range" id="cutoff" min="200" max="6000" value="1200" step="50">
-        </div>
-        <div class="control-item">
-            <span class="control-label">تیزی اسیدی (RESONANCE)</span>
-            <input type="range" id="resonance" min="1" max="25" value="14" step="0.5">
-        </div>
-        <div class="control-item">
-            <span class="control-label">عمق فیلتر (ENV MOD)</span>
-            <input type="range" id="env-mod" min="100" max="5000" value="2200" step="100">
-        </div>
-        <div class="control-item">
-            <span class="control-label">کشش صدا (DECAY)</span>
-            <input type="range" id="decay" min="0.1" max="0.9" value="0.3" step="0.05">
-        </div>
-    </div>
-
-    <!-- بخش ۱۶ خانه ریتم -->
-    <div>
-        <div class="seq-header">
-            <span>پنل ۱۶ خانه‌ای ریتم (PATTERN SEQUENCER)</span>
-            <span class="seq-hint">برای روشن/خاموش کردن و ویرایش هر خانه روی آن کلیک کنید</span>
-        </div>
-        <div class="steps-grid" id="steps-container">
-            <!-- خانه‌ها با جاوااسکریپت ساخته می‌شوند -->
-        </div>
-    </div>
-
-    <!-- بخش تنظیم نت هر خانه -->
-    <div class="edit-bar">
-        <div>
-            ویرایش خانه شماره: <strong id="selected-step-label" style="color: #00ff66; font-size: 16px;">1</strong>
-        </div>
-        <div>
-            <label>انتخاب نت (NOTE): </label>
-            <select id="step-note" onchange="updateSelectedStepNote(this.value)">
-                <option value="C2">C2</option>
-                <option value="C#2">C#2</option>
-                <option value="D2">D2</option>
-                <option value="D#2">D#2</option>
-                <option value="E2" selected>E2</option>
-                <option value="F2">F2</option>
-                <option value="F#2">F#2</option>
-                <option value="G2">G2</option>
-                <option value="G#2">G#2</option>
-                <option value="A2">A2</option>
-                <option value="A#2">A#2</option>
-                <option value="B2">B2</option>
-                <option value="C3">C3</option>
-            </select>
-        </div>
-        <div class="checkbox-group">
-            <label class="checkbox-label">
-                <input type="checkbox" id="step-slide" onchange="toggleSelectedStepAttr('slide')">
-                سُر خوردن نت (SLIDE)
-            </label>
-            <label class="checkbox-label">
-                <input type="checkbox" id="step-accent" onchange="toggleSelectedStepAttr('accent')">
-                ضربه قوی (ACCENT)
-            </label>
-        </div>
-    </div>
-
-</main>
-
-<!-- فوتر و لینک دونیت ری‌میت -->
-<footer>
-    <div>ساخته شده با موتور صوتی Web Audio API</div>
-    <a href="https://reymit.ir/milito" target="_blank" rel="noopener noreferrer" class="donate-btn">
-        ☕ حمایت مالی از من (Donation)
-    </a>
-</footer>
-
-<!-- کدهای تولید صدا -->
-<script>
-    let audioCtx = null;
-    let isPlaying = false;
-    let currentStep = 0;
-    let tempo = 126;
-    let timerId = null;
-    let waveformType = 'sawtooth';
-    let currentSelectedStep = 0;
-
-    const defaultNotes = ['E2', 'E2', 'G2', 'E2', 'A2', 'G2', 'E2', 'D2', 'E2', 'E2', 'B2', 'A2', 'G2', 'E2', 'D2', 'C2'];
-
-    let pattern = Array(16).fill(0).map((_, i) => ({
-        active: i % 2 === 0 || i === 3 || i === 11,
-        note: defaultNotes[i],slide: i === 3 || i === 11,
-        accent: i % 4 === 0
-    }));
-
-    const noteFrequencies = {
-        'C2': 65.41, 'C#2': 69.30, 'D2': 73.42, 'D#2': 77.78,
-        'E2': 82.41, 'F2': 87.31, 'F#2': 92.50, 'G2': 98.00,
-        'G#2': 103.83, 'A2': 110.00, 'A#2': 116.54, 'B2': 123.47, 'C3': 130.81
-    };
-
-    const stepsContainer = document.getElementById('steps-container');
-    pattern.forEach((step, idx) => {
-        const btn = document.createElement('button');
-        btn.className = 'step-btn ' + (step.active ? 'active' : '');
-        btn.id = 'step-btn-' + idx;
-        btn.onclick = () => selectStep(idx);
-        btn.innerHTML = `
-            <span class="step-num">${idx + 1}</span>
-            <span id="step-txt-￼{step.active ? step.note : '-'}</span>
-            <span id="step-dot-${idx}" class="accent-dot ${step.accent ? 'on' : ''}"></span>
-        `;
-        stepsContainer.appendChild(btn);
-    });
-
-    function selectStep(idx) {
-        currentSelectedStep = idx;
-        document.getElementById('selected-step-label').innerText = idx + 1;
-        document.getElementById('step-note').value = pattern[idx].note;
-        document.getElementById('step-slide').checked = pattern[idx].slide;
-        document.getElementById('step-accent').checked = pattern[idx].accent;
-        
-        pattern[idx].active = !pattern[idx].active;
-        updateStepUI(idx);
-    }
-
-    function updateStepUI(idx) {
-        const btn = document.getElementById('step-btn-' + idx);
-        const txt = document.getElementById('step-txt-' + idx);
-        const dot = document.getElementById('step-dot-' + idx);
-        
-        if (pattern[idx].active) {
-            btn.classList.add('active');
-            txt.innerText = pattern[idx].note;
-        } else {
-            btn.classList.remove('active');
-            txt.innerText = '-';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TB-303 ACID BASS</title>
+    <style>
+        /* Offline Embedded Tailwind-Equivalent Styles (Exact original look, zero CDN dependency) */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
-        if (pattern[idx].accent) {
-            dot.classList.add('on');
-        } else {
-            dot.classList.remove('on');
-        }
-    }
-
-    function updateSelectedStepNote(note) {
-        pattern[currentSelectedStep].note = note;
-        updateStepUI(currentSelectedStep);
-    }
-
-    function toggleSelectedStepAttr(attr) {
-        pattern[currentSelectedStep][attr] = document.getElementById('step-' + attr).checked;
-        updateStepUI(currentSelectedStep);
-    }
-
-    function changeTempo(amount) {
-        tempo = Math.min(180, Math.max(60, tempo + amount));
-        document.getElementById('tempo-display').innerText = tempo;
-        if (isPlaying) {
-            stopSequencer();
-            startSequencer();
-        }
-    }
-
-    function setWaveform(type) {
-        waveformType = type;
-        document.getElementById('btn-saw').className = 'wave-btn ' + (type === 'sawtooth' ? 'active' : '');
-        document.getElementById('btn-sqr').className = 'wave-btn ' + (type === 'square' ? 'active' : '');
-    }
-
-    function togglePlay() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
+        body {
+            font-family: 'Courier New', Courier, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background-color: #121212;
+            color: #00ff66;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 100vh;
+            padding: 1rem;
         }
 
-        isPlaying = !isPlaying;
-        const playBtn = document.getElementById('play-btn');
-        if (isPlaying) {
-            playBtn.innerText = 'توقف (STOP)';
-            playBtn.classList.add('playing');
-            startSequencer();
-        } else {
-            stopSequencer();
-            playBtn.innerText = 'پخش (PLAY)';
-            playBtn.classList.remove('playing');
+        header {
+            text-align: center;
+            margin: 0.75rem 0;
         }
-    }
 
-    function startSequencer() {
-        const interval = (60 / tempo / 4) * 1000;
-        timerId = setInterval(() => {
-            runStep();
-            currentStep = (currentStep + 1) % 16;
-        }, interval);
-    }
-
-    function stopSequencer() {
-        clearInterval(timerId);
-        currentStep = 0;
-        for (let i = 0; i < 16; i++) {
-            document.getElementById('step-btn-' + i).classList.remove('current-play');
+        .title {
+            font-size: 2.25rem;
+            font-weight: 900;
+            letter-spacing: 0.15em;
+            color: #34d399;
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.6);
+            margin-bottom: 0.25rem;
         }
-    }
 
-    function runStep() {
-        for (let i = 0; i < 16; i++) {
-            const btn = document.getElementById('step-btn-' + i);
-            if (i === currentStep) {
-                btn.classList.add('current-play');
-            } else {
-                btn.classList.remove('current-play');
+        .subtitle {
+            font-size: 0.75rem;
+            color: #a1a1aa;
+            letter-spacing: 0.1em;
+        }
+
+        .synth-container {
+            width: 100%;
+            max-width: 56rem;
+            background-color: #18181b;
+            border: 2px solid #3f3f46;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+        }
+
+        .panel-top {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background-color: rgba(0, 0, 0, 0.6);
+            border-radius: 0.5rem;
+            border: 1px solid #27272a;
+        }
+
+        .panel-knobs {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background-color: rgba(0, 0, 0, 0.4);
+            border-radius: 0.5rem;
+            border: 1px solid #27272a;
+            text-align: center;
+        }
+
+        @media (min-width: 640px) {
+            .panel-knobs {
+                grid-template-columns: repeat(4, 1fr);
             }
         }
 
-        const stepData = pattern[currentStep];
-        if (stepData.active) {
+        @media (min-width: 768px) {
+            .panel-top {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            .title {
+                font-size: 2.5rem;
+            }
+        }
+
+        .control-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .label-sm {
+            font-size: 0.75rem;
+            color: #a1a1aa;
+            margin-bottom: 0.35rem;
+            display: block;
+            letter-spacing: 0.05em;
+        }
+
+        .tempo-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-tempo {
+            padding: 0.25rem 0.6rem;
+            background-color: #27272a;
+            color: #00ff66;
+            border: 1px solid #3f3f46;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+
+        .btn-tempo:hover {
+            background-color: #3f3f46;
+        }
+
+        .tempo-val {
+            font-size: 1.25rem;
+            font-weight: 700;
+            width: 3rem;
+            text-align: center;
+            color: #34d399;
+        }
+
+        .wave-switch {
+            display: flex;
+            background-color: #27272a;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+        }
+
+        .btn-wave {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            font-family: inherit;
+            border: none;
+            border-radius: 0.2rem;
+            cursor: pointer;
+            background: transparent;
+            color: #d4d4d8;
+            transition: all 0.15s;
+        }
+
+        .btn-wave.active {
+            background-color: #10b981;
+            color: #000000;
+            font-weight: 700;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: #10b981;
+            cursor: pointer;
+        }
+
+        .range-sm {
+            width: 6rem !important;
+        }
+
+        .btn-play {
+            padding: 0.75rem 1.75rem;
+            background-color: #10b981;
+            color: #000000;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 900;
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 0 12px #00ff66;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.15s;
+        }
+
+        .btn-play:hover {
+            background-color: #34d399;
+        }
+
+        .btn-play:active {
+            transform: scale(0.95);
+        }
+
+        .btn-play.stop-mode {
+            background-color: #f43f5e;
+            color: #ffffff;
+            box-shadow: 0 0 12px #f43f5e;
+        }
+
+        .btn-play.stop-mode:hover {
+            background-color: #fb7185;
+        }
+
+        .seq-header {
+            font-size: 0.75rem;
+            color: #a1a1aa;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .seq-hint {
+            color: #10b981;
+            font-size: 0.68rem;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 0.375rem;
+            margin-bottom: 1rem;
+        }
+
+        @media (min-width: 640px) {
+            .steps-grid {
+                grid-template-columns: repeat(16, 1fr);
+            }
+        }
+
+        .btn-step {
+            height: 4rem;
+            background-color: #222222;
+            border: 1px solid #444444;
+            border-radius: 0.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.25rem;
+            font-size: 0.65rem;
+            font-family: inherit;
+            color: #00ff66;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .btn-step.active {
+            background-color: #00ff66;
+            color: #121212;
+            box-shadow: 0 0 12px #00ff66;
+            border-color: #ffffff;
+        }
+
+        .step-idx {
+            color: #71717a;
+        }
+
+        .btn-step.active .step-idx {
+            color: #18181b;
+            font-weight: bold;
+        }
+
+        .step-note-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+        }
+
+        .accent-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 9999px;
+            background-color: transparent;
+        }
+
+        .accent-dot.on {
+            background-color: #fbbf24;
+        }
+
+        .edit-bar {
+            padding: 0.75rem;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 0.5rem;
+            border: 1px solid #27272a;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            font-size: 0.75rem;
+            color: #d4d4d8;
+        }
+
+        .select-note {
+            background-color: #27272a;
+            border: 1px solid #3f3f46;
+            color: #34d399;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .attr-group {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .attr-label {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            cursor: pointer;
+            color: #d4d4d8;
+        }
+
+        input[type="checkbox"] {
+            accent-color: #10b981;
+            cursor: pointer;
+        }
+
+        footer {
+            width: 100%;
+            max-width: 56rem;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #27272a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            font-size: 0.75rem;
+            color: #71717a;
+        }
+
+        @media (min-width: 640px) {
+            footer {
+                flex-direction: row;
+            }
+        }
+
+        .donate-link {
+            padding: 0.5rem 1rem;
+            background: linear-gradient(to right, #059669, #0d9488);
+            color: #ffffff;
+            font-weight: 700;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .donate-link:hover {
+            background: linear-gradient(to right, #10b981, #14b8a6);
+            box-shadow: 0 0 15px rgba(0, 255, 102, 0.7);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header / Title -->
+    <header>
+        <h1 class="title">TB-303 ACID BASS</h1>
+        <p class="subtitle">WEB AUDIO ACID SYNTHESIZER &amp; SEQUENCER</p>
+    </header>
+
+    <!-- Main Synth Box -->
+    <main class="synth-container">
+        
+        <!-- Top Controls Panel -->
+        <div class="panel-top">
+            <!-- Tempo -->
+            <div class="control-col">
+                <label class="label-sm">TEMPO (BPM)</label>
+                <div class="tempo-controls">
+                    <button onclick="changeTempo(-5)" class="btn-tempo">-</button>
+                    <span id="tempo-display" class="tempo-val">126</span>
+                    <button onclick="changeTempo(5)" class="btn-tempo">+</button>
+                </div>
+            </div>
+
+            <!-- Waveform -->
+            <div class="control-col">
+                <label class="label-sm">WAVEFORM</label>
+                <div class="wave-switch">
+                    <button onclick="setWaveform('sawtooth')" id="btn-saw" class="btn-wave active">SAW</button>
+                    <button onclick="setWaveform('square')" id="btn-sqr" class="btn-wave">SQR</button>
+                </div>
+            </div>
+
+            <!-- Tuning / Accent -->
+            <div class="control-col">
+                <label class="label-sm">ACCENT BOOST</label>
+                <input type="range" id="accent-boost" min="1" max="2.5" step="0.1" value="1.5" class="range-sm">
+            </div>
+
+            <!-- Play / Stop -->
+            <div class="control-col">
+                <button id="play-btn" onclick="togglePlay()" class="btn-play">
+                    PLAY
+                </button>
+            </div>
+        </div>
+
+        <!-- Knob Controls (Filter / Env) -->
+        <div class="panel-knobs">
+            <div>
+                <label class="label-sm">CUTOFF</label>
+                <input type="range" id="cutoff" min="200" max="8000" value="1200" step="50">
+            </div>
+            <div>
+                <label class="label-sm">RESONANCE</label>
+                <input type="range" id="resonance" min="1" max="25" value="12" step="0.5">
+            </div>
+            <div>
+                <label class="label-sm">ENV MOD</label>
+                <input type="range" id="env-mod" min="0" max="5000" value="2000" step="100">
+            </div>
+            <div>
+                <label class="label-sm">DECAY</label>
+                <input type="range" id="decay" min="0.1" max="1.0" value="0.3" step="0.05">
+            </div>
+        </div>
+
+        <!-- Step Sequencer 16 Steps -->
+        <div>
+            <div class="seq-header">
+                <span>PATTERN SEQUENCER (16 STEPS)</span>
+                <span class="seq-hint">Click step to toggle on/off</span>
+            </div>
+            <div class="steps-grid" id="steps-container">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+
+        <!-- Note & Attributes Selector for Selected Step -->
+        <div class="edit-bar">
+            <div>
+                EDITING STEP: <span id="selected-step-label" style="color: #34d399; font-weight: bold;">1</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label style="color: #a1a1aa;">NOTE:</label>
+                <select id="step-note" onchange="updateSelectedStepNote(this.value)" class="select-note">
+                    <option value="C2">C2</option>
+                    <option value="C#2">C#2</option>
+                    <option value="D2">D2</option>
+                    <option value="D#2">D#2</option>
+                    <option value="E2" selected>E2</option>
+                    <option value="F2">F2</option>
+                    <option value="F#2">F#2</option>
+                    <option value="G2">G2</option>
+                    <option value="G#2">G#2</option>
+                    <option value="A2">A2</option>
+                    <option value="A#2">A#2</option>
+                    <option value="B2">B2</option>
+                    <option value="C3">C3</option>
+                </select>
+            </div>
+            <div class="attr-group">
+                <label class="attr-label">
+                    <input type="checkbox" id="step-slide" onchange="toggleSelectedStepAttr('slide')"> SLIDE
+                </label>
+                <label class="attr-label">
+                    <input type="checkbox" id="step-accent" onchange="toggleSelectedStepAttr('accent')"> ACCENT
+                </label>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer with Reymit Donation Link -->
+    <footer>
+        <div>Roland TB-303 Web Synthesizer &bull; MILLITO</div>
+        <div>
+            <a href="https://reymit.ir/milito" target="_blank" rel="noopener noreferrer" class="donate-link">
+                ☕ SUPPORT / DONATE
+            </a>
+        </div>
+    </footer>
+
+    <!-- Audio Synth Logic -->
+    <script>
+        let audioCtx = null;
+        let isPlaying = false;
+        let currentStep = 0;
+        let tempo = 126;
+        let timerId = null;
+        let waveformType = 'sawtooth';
+        let currentSelectedStep = 0;
+
+        // 16 Steps Pattern Data
+        let pattern = Array(16).fill(0).map((_, i) => ({
+            active: i % 2 === 0,
+            note: 'E2',
+            slide: false,
+            accent: i % 4 === 0
+        }));
+
+        const noteFrequencies = {
+            'C2': 65.41, 'C#2': 69.30, 'D2': 73.42, 'D#2': 77.78,
+            'E2': 82.41, 'F2': 87.31, 'F#2': 92.50, 'G2': 98.00,
+            'G#2': 103.83, 'A2': 110.00, 'A#2': 116.54, 'B2': 123.47, 'C3': 130.81
+        };
+
+        // Build UI Steps
+        const stepsContainer = document.getElementById('steps-container');
+        pattern.forEach((step, idx) => {
+            const btn = document.createElement('button');
+            btn.className = `btn-step ${step.active ? 'active' : ''}`;
+            btn.id = `step-btn-${idx}`;
+            btn.onclick = () => selectStep(idx);
+            btn.innerHTML = `
+                <span class="step-idx">${idx + 1}</span>
+                <span id="step-txt-${idx}" class="step-note-label">${step.active ? step.note : '-'}</span>
+                <span id="step-dot-${idx}" class="accent-dot ${step.accent ? 'on' : ''}"></span>
+            `;
+            stepsContainer.appendChild(btn);
+        });
+
+        function selectStep(idx) {
+            currentSelectedStep = idx;
+            document.getElementById('selected-step-label').innerText = idx + 1;
+            document.getElementById('step-note').value = pattern[idx].note;
+            document.getElementById('step-slide').checked = pattern[idx].slide;
+            document.getElementById('step-accent').checked = pattern[idx].accent;
+            
+            pattern[idx].active = !pattern[idx].active;
+            updateStepUI(idx);
+        }
+
+        function updateStepUI(idx) {
+            const btn = document.getElementById(`step-btn-${idx}`);
+            const txt = document.getElementById(`step-txt-${idx}`);
+            const dot = document.getElementById(`step-dot-${idx}`);
+            if (pattern[idx].active) {
+                btn.classList.add('active');
+                txt.innerText = pattern[idx].note;
+            } else {
+                btn.classList.remove('active');
+                txt.innerText = '-';
+            }
+            dot.className = `accent-dot ${pattern[idx].accent ? 'on' : ''}`;
+        }
+
+        function updateSelectedStepNote(note) {
+            pattern[currentSelectedStep].note = note;
+            updateStepUI(currentSelectedStep);
+        }
+
+        function toggleSelectedStepAttr(attr) {
+            pattern[currentSelectedStep][attr] = document.getElementById(`step-${attr}`).checked;
+            updateStepUI(currentSelectedStep);
+        }
+
+        function changeTempo(amount) {
+            tempo = Math.min(180, Math.max(60, tempo + amount));
+            document.getElementById('tempo-display').innerText = tempo;
+            if (isPlaying) {
+                stopSequencer();
+                startSequencer();
+            }
+        }
+
+        function setWaveform(type) {
+            waveformType = type;
+            document.getElementById('btn-saw').className = `btn-wave ${type === 'sawtooth' ? 'active' : ''}`;
+            document.getElementById('btn-sqr').className = `btn-wave ${type === 'square' ? 'active' : ''}`;
+        }
+
+        function togglePlay() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            isPlaying = !isPlaying;
+            const playBtn = document.getElementById('play-btn');
+            if (isPlaying) {
+                playBtn.innerText = 'STOP';
+                playBtn.classList.add('stop-mode');
+                startSequencer();
+            } else {
+                stopSequencer();
+                playBtn.innerText = 'PLAY';
+                playBtn.classList.remove('stop-mode');
+            }
+        }
+
+        function startSequencer() {
+            const interval = (60 / tempo / 4) * 1000;
+            timerId = setInterval(() => {
+                runStep();
+                currentStep = (currentStep + 1) % 16;
+            }, interval);
+        }
+
+        function stopSequencer() {
+            clearInterval(timerId);
+            currentStep = 0;
+            for(let i = 0; i < 16; i++) {
+                document.getElementById(`step-btn-${i}`).style.borderColor = pattern[i].active ? '#ffffff' : '#444444';
+            }
+        }
+
+        function runStep() {
+            for(let i = 0; i < 16; i++) {
+                const defaultBorder = pattern[i].active ? '#ffffff' : '#444444';
+                document.getElementById(`step-btn-${i}`).style.borderColor = (i === currentStep) ? '#fbbf24' : defaultBorder;
+            }
+
+            const stepData = pattern[currentStep];
+            if (!stepData.active) return;
+
             play303Note(stepData);
         }
-    }
 
-    let lastFreq = 82.41;
+        let lastFreq = 82.41;
 
-    function play303Note(step) {
-        const now = audioCtx.currentTime;
-        const freq = noteFrequencies[step.note] || 82.41;
+        function play303Note(step) {
+            const now = audioCtx.currentTime;
+            const freq = noteFrequencies[step.note] || 82.41;
 
-        const osc = audioCtx.createOscillator();
-        osc.type = waveformType;
-        osc.frequency.setValueAtTime(lastFreq, now);
-        
-        if (step.slide) {
-            osc.frequency.exponentialRampToValueAtTime(freq, now + 0.08);
-        } else {
-            osc.frequency.setValueAtTime(freq, now);
+            const osc = audioCtx.createOscillator();
+            osc.type = waveformType;
+            osc.frequency.setValueAtTime(lastFreq, now);
+            
+            if (step.slide) {
+                osc.frequency.exponentialRampToValueAtTime(freq, now + 0.1);
+            } else {
+                osc.frequency.setValueAtTime(freq, now);
+            }
+            lastFreq = freq;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            
+            const cutoffVal = parseFloat(document.getElementById('cutoff').value);
+            const resVal = parseFloat(document.getElementById('resonance').value);
+            const envModVal = parseFloat(document.getElementById('env-mod').value);
+            const decayVal = parseFloat(document.getElementById('decay').value);
+            const accentMultiplier = step.accent ? parseFloat(document.getElementById('accent-boost').value) : 1.0;
+
+            filter.Q.setValueAtTime(resVal, now);
+            filter.frequency.setValueAtTime(cutoffVal, now);
+
+            filter.frequency.exponentialRampToValueAtTime(
+                Math.min(15000, Math.max(100, cutoffVal + (envModVal * accentMultiplier))), 
+                now + 0.02
+            );
+            filter.frequency.exponentialRampToValueAtTime(cutoffVal, now + decayVal);
+
+            const gainNode = audioCtx.createGain();
+            const peakGain = step.accent ? 0.7 : 0.4;
+            gainNode.gain.setValueAtTime(peakGain, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, now + decayVal);
+
+            osc.connect(filter);
+            filter.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + decayVal + 0.1);
         }
-        lastFreq = freq;
-
-        const filter = audioCtx.createBiquadFilter();
-        filter.type = 'lowpass';
-        
-        const cutoffVal = parseFloat(document.getElementById('cutoff').value);
-        const resVal = parseFloat(document.getElementById('resonance').value);
-        const envModVal = parseFloat(document.getElementById('env-mod').value);
-        const decayVal = parseFloat(document.getElementById('decay').value);
-        const accentMultiplier = step.accent ? parseFloat(document.getElementById('accent-boost').value) : 1.0;
-
-        filter.Q.setValueAtTime(resVal, now);
-        filter.frequency.setValueAtTime(cutoffVal, now);
-
-        const peakFilter = Math.min(14000, Math.max(100, cutoffVal + (envModVal * accentMultiplier)));
-        filter.frequency.exponentialRampToValueAtTime(peakFilter, now + 0.015);
-        filter.frequency.exponentialRampToValueAtTime(cutoffVal, now + decayVal);
-
-        const gainNode = audioCtx.createGain();
-        const peakGain = step.accent ? 0.65 : 0.35;
-        gainNode.gain.setValueAtTime(peakGain, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + decayVal);
-
-        osc.connect(filter);
-        filter.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-
-        osc.start(now);
-        osc.stop(now + decayVal + 0.05);
-    }
-</script>
+    </script>
+</body>
+</html>
